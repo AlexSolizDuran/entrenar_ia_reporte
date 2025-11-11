@@ -81,20 +81,29 @@ model = T5ForConditionalGeneration.from_pretrained(MODELO_BASE)
 
 # Define los argumentos (parámetros) para el entrenamiento
 training_args = Seq2SeqTrainingArguments(
-    output_dir=CARPETA_MODELO_FINAL,      # Carpeta donde se guardará el modelo
-    num_train_epochs=5,                  # Número de veces que la IA "lee" el dataset. 5-10 es un buen inicio.
-    per_device_train_batch_size=4,       # Cuántos ejemplos procesa a la vez. 4 u 8 es bueno.
-    per_device_eval_batch_size=4,        # Igual para la validación.
-    warmup_steps=500,                    # Parámetros de optimización
+    output_dir=CARPETA_MODELO_FINAL,
+    num_train_epochs=5,
+    
+    # --- CAMBIOS CLAVE AQUÍ ---
+    # 1. Activa la precisión mixta para tu RTX 40-series
+    fp16=True, 
+    
+    # 2. Aumenta drásticamente el tamaño del lote.
+    #    (Empieza con 32, si no da error de memoria, prueba 48 o 64)
+    per_device_train_batch_size=32, 
+    per_device_eval_batch_size=32,
+    # --- FIN DE CAMBIOS ---
+    
+    warmup_steps=500,
     weight_decay=0.01,
-    logging_dir="./logs",                # Carpeta para guardar logs
-    logging_steps=100,                   # Imprime el progreso cada 100 pasos
-    eval_strategy="steps",        # Evalúa el modelo periódicamente
-    eval_steps=200,                      # Evalúa cada 200 pasos
-    save_strategy="steps",               # Guarda un checkpoint cada 200 pasos
+    logging_dir="./logs",
+    logging_steps=100,
+    eval_strategy="steps",
+    eval_steps=200,
+    save_strategy="steps",
     save_steps=200,
-    load_best_model_at_end=True,         # Al final, carga la mejor versión del modelo
-    predict_with_generate=True,          # Necesario para modelos Seq2Seq
+    load_best_model_at_end=True,
+    predict_with_generate=True,
 )
 
 # El Data Collator se asegura de que las entradas y salidas
