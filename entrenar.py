@@ -95,14 +95,15 @@ training_args = Seq2SeqTrainingArguments(
     warmup_steps=500,
     logging_dir="./logs",
     logging_steps=100,
-    eval_strategy="steps",
-    eval_steps=200,
     
-    # --- CAMBIOS PARA GUARDAR UN SOLO MODELO ---
-    save_strategy="no",         # ⬅️ DESACTIVAR CHECKPOINTS INTERMEDIOS
-    save_steps=200,             # (Esto ahora se ignora)
+    # --- CAMBIOS CORREGIDOS Y REQUERIDOS POR EL ERROR ---
+    eval_strategy="steps",      # MANTENER: Queremos que evalúe por pasos
+    save_strategy="steps",      # ⬅️ CORRECCIÓN: DEBE COINCIDIR con eval_strategy
+    save_steps=200,             # MANTENER: Guarda un checkpoint cada 200 pasos
+    save_total_limit=1,         # ⬅️ NUEVO: SOLO MANTIENE 1 CHECKPOINT. Esto evita que el disco se llene.
+    # ----------------------------------------------------
     
-    load_best_model_at_end=True,
+    load_best_model_at_end=True, # ESTO AHORA FUNCIONARÁ
     predict_with_generate=True,
 )
 
