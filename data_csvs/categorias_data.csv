@@ -1,0 +1,62 @@
+Hombre,
+Mujer,
+Niño,
+Niña,
+Unisex,
+Calzado,
+Ropa Superior (Hombre),Hombre
+Ropa Inferior (Hombre),Hombre
+Ropa Exterior (Hombre),Hombre
+Trajes y Formal (Hombre),Hombre
+Ropa Superior (Mujer),Mujer
+Ropa Inferior (Mujer),Mujer
+Ropa Exterior (Mujer),Mujer
+Vestidos y Faldas,Mujer
+Lencería y Dormir,Mujer
+Ropa Superior (Niño),Niño
+Ropa Inferior (Niño),Niño
+Ropa Superior (Niña),Niña
+Ropa Inferior (Niña),Niña
+Básicos (Unisex),Unisex
+Zapatillas,Calzado
+Camisas,Ropa Superior (Hombre)
+Camisetas (Hombre),Ropa Superior (Hombre)
+Polos,Ropa Superior (Hombre)
+Suéteres (Hombre),Ropa Superior (Hombre)
+Sudaderas (Hombre),Ropa Superior (Hombre)
+Pantalones (Hombre),Ropa Inferior (Hombre)
+Jeans (Hombre),Ropa Inferior (Hombre)
+Bermudas,Ropa Inferior (Hombre)
+Chaquetas (Hombre),Ropa Exterior (Hombre)
+Abrigos (Hombre),Ropa Exterior (Hombre)
+Blazers,Ropa Exterior (Hombre)
+Trajes,Trajes y Formal (Hombre)
+Sacos,Trajes y Formal (Hombre)
+Pantalones de Traje,Trajes y Formal (Hombre)
+Blusas (Mujer),Ropa Superior (Mujer)
+Tops,Ropa Superior (Mujer)
+Camisetas (Mujer),Ropa Superior (Mujer)
+Suéteres (Mujer),Ropa Superior (Mujer)
+Sudaderas (Mujer),Ropa Superior (Mujer)
+Pantalones (Mujer),Ropa Inferior (Mujer)
+Jeans (Mujer),Ropa Inferior (Mujer)
+Leggings,Ropa Inferior (Mujer)
+Chaquetas (Mujer),Ropa Exterior (Mujer)
+Abrigos (Mujer),Ropa Exterior (Mujer)
+Chalecos,Ropa Exterior (Mujer)
+Vestidos (Mujer),Vestidos y Faldas
+Faldas (Mujer),Vestidos y Faldas
+Lencería,Lencería y Dormir
+Ropa de Dormir,Lencería y Dormir
+Camisetas (Niño),Ropa Superior (Niño)
+Sudaderas (Niño),Ropa Superior (Niño)
+Pantalones (Niño),Ropa Inferior (Niño)
+Jeans (Niño),Ropa Inferior (Niño)
+Camisetas (Niña),Ropa Superior (Niña)
+Blusas (Niña),Ropa Superior (Niña)
+Vestidos (Niña),Ropa Inferior (Niña)
+Faldas (Niña),Ropa Inferior (Niña)
+Pantalones (Niña),Ropa Inferior (Niña)
+Camisetas (Unisex),Básicos (Unisex)
+Sudaderas (Unisex),Básicos (Unisex)
+Pantalones (Joggers),Básicos (Unisex)
