@@ -82,26 +82,26 @@ model = T5ForConditionalGeneration.from_pretrained(MODELO_BASE)
 # Define los argumentos (parámetros) para el entrenamiento
 training_args = Seq2SeqTrainingArguments(
     output_dir=CARPETA_MODELO_FINAL,
-    num_train_epochs=5,
+    num_train_epochs=3, 
+    weight_decay=0.1, 
     
-    # --- CAMBIOS CLAVE AQUÍ ---
-    # 1. Activa la precisión mixta para tu RTX 40-series
     fp16=True, 
-    
-    # 2. Aumenta drásticamente el tamaño del lote.
-    #    (Empieza con 32, si no da error de memoria, prueba 48 o 64)
-    per_device_train_batch_size=32, 
-    per_device_eval_batch_size=32,
-    # --- FIN DE CAMBIOS ---
+    per_device_train_batch_size=12, 
+    per_device_eval_batch_size=12,
+    gradient_accumulation_steps=4, 
+
+    dataloader_num_workers=4,
     
     warmup_steps=500,
-    weight_decay=0.01,
     logging_dir="./logs",
     logging_steps=100,
     eval_strategy="steps",
     eval_steps=200,
-    save_strategy="steps",
-    save_steps=200,
+    
+    # --- CAMBIOS PARA GUARDAR UN SOLO MODELO ---
+    save_strategy="no",         # ⬅️ DESACTIVAR CHECKPOINTS INTERMEDIOS
+    save_steps=200,             # (Esto ahora se ignora)
+    
     load_best_model_at_end=True,
     predict_with_generate=True,
 )

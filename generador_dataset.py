@@ -404,6 +404,45 @@ TEMPLATES = [
         ["producto", "categoria", "marca", "modelo", "material", "sku", "talla", "color", "stock"]
     ),
     (
+        "Reporte de clientes que compraron {producto}",
+        """SELECT 
+            u.nombre, 
+            u.apellido, 
+            u.email, 
+            SUM(dv.cantidad) AS unidades_compradas,
+            SUM(dv.subtotal) AS gasto_en_producto
+        FROM detalle_venta dv
+        JOIN venta v ON dv.venta_id = v.id
+        JOIN usuario u ON v.cliente_id = u.id
+        JOIN prod_variante pv ON dv.prod_variante_id = pv.id
+        JOIN producto p ON pv.id_producto = p.id
+        WHERE p.descripcion = '{producto}'
+        GROUP BY u.id, u.nombre, u.apellido, u.email
+        ORDER BY gasto_en_producto DESC;""",
+        ["nombre", "apellido", "email", "unidades_compradas", "gasto_en_producto"]
+    ),
+    (
+        "Precio promedio de venta del producto {producto}",
+        """SELECT AVG(pv.precio) AS precio_promedio
+        FROM prod_variante pv
+        JOIN producto p ON pv.id_producto = p.id
+        WHERE p.descripcion = '{producto}';"""
+    ),
+    (
+        "Reporte de ingresos por material",
+        """SELECT 
+            ma.nombre AS material,
+            SUM(dv.cantidad) AS unidades_vendidas,
+            SUM(dv.subtotal) AS ingresos_por_material
+        FROM detalle_venta dv
+        JOIN prod_variante pv ON dv.prod_variante_id = pv.id
+        JOIN producto p ON pv.id_producto = p.id
+        JOIN material ma ON p.material_id = ma.id
+        GROUP BY ma.nombre
+        ORDER BY ingresos_por_material DESC;""",
+        ["material", "unidades_vendidas", "ingresos_por_material"]
+    ),
+    (
         "Reporte de bajo stock (menos de 10 unidades)",
         """SELECT
                p.descripcion AS producto,
@@ -771,4 +810,4 @@ if __name__ == "__main__":
     parametros = cargar_parametros()
     if parametros:
         # ¡Aumentemos el número de muestras!
-        generar_dataset(parametros, num_samples=4000, nombre_archivo="train.jsonl")
+        generar_dataset(parametros, num_samples=8000, nombre_archivo="train.jsonl")
