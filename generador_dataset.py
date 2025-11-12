@@ -5,65 +5,81 @@ import random
 # --- 1. Plantillas de SQL (¡FORMATO NUEVO!) ---
 # Las plantillas de TABLAS ahora tienen 3 partes:
 # (pregunta_base, sql_ancho, [lista_de_columnas_disponibles])
-# Las plantillas de VALOR ÚNICO (como SUM) se quedan igual (pregunta_base, sql)
+# Las plantillas de VALOR uNICO (como SUM) se quedan igual (pregunta_base, sql)
 TEMPLATES = [
-    # --- GANANCIAS (PROFIT) - (Valor Único) ---
-    (
-        "¿Cuál fue la ganancia total?",
-        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_total FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id;"
-    ),
+    # --- GANANCIAS (PROFIT) - (Valor unico) ---
     (
         "Ganancias de hoy",
         "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_total FROM detalle_venta dv JOIN venta v ON dv.venta_id = v.id JOIN prod_variante pv ON dv.prod_variante_id = pv.id WHERE DATE(v.fecha_venta) = DATE('now');"
     ),
     (
-        "rentabilidad del producto {producto}",
-        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_producto FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id WHERE p.descripcion = '{producto}';"
+        "ganancias de la categoria {categoria}",
+        "WITH RECURSIVE categorias_recursivas(id) AS ( SELECT id FROM categoria WHERE nombre = '{categoria}' UNION SELECT c.id FROM categoria c JOIN categorias_recursivas cr ON c.padre_id = cr.id ) SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_categoria FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);"
     ),
     (
-        "ganancias de la categoría {categoria}",
-        """WITH RECURSIVE categorias_recursivas(id) AS (
-             SELECT id FROM categoria WHERE nombre = '{categoria}'
-             UNION
-             SELECT c.id FROM categoria c
-             JOIN categorias_recursivas cr ON c.padre_id = cr.id
-           )
-           SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_categoria
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);"""
+        "ganancias de la talla {talla}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_talla FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN talla t ON pv.id_talla = t.id WHERE t.talla = '{talla}';"
     ),
-    
-    # --- ¡CAMBIO! Plantillas de TABLAS (formato de 3 elementos) ---
+    (
+        "ganancias del color {color}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_color FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN color c ON pv.id_color = c.id WHERE c.nombre = '{color}';"
+    ),
+    (
+        "ganancias de la marca {marca}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_marca FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id WHERE b.nombre = '{marca}';"
+    ),
+    (
+        "ganancias del modelo {modelo}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_modelo FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id WHERE m.nombre = '{modelo}';"
+    ),
+    (
+        "ganancias del material {material}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_material FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN material ma ON p.material_id = ma.id WHERE ma.nombre = '{material}';"
+    ),
+    (
+        "ganancias de la etiqueta {etiqueta}",
+        "SELECT SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_etiqueta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN producto_etiqueta pe ON p.id = pe.producto_id JOIN etiqueta e ON pe.etiqueta_id = e.id WHERE e.nombre = '{etiqueta}';"
+    ),
+    (
+        "Reporte de ganancias por categoria",
+        "SELECT c.nombre AS categoria, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN categoria c ON p.categoria_id = c.id GROUP BY c.nombre ORDER BY ganancia_neta DESC;",
+        ["categoria", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
     (
         "Reporte de ganancias por marca",
-        """SELECT 
-               b.nombre AS marca, 
-               SUM(dv.cantidad) AS unidades_vendidas,
-               SUM(dv.subtotal) AS ingresos_totales,
-               SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           JOIN modelo m ON p.modelo_id = m.id
-           JOIN marca b ON m.marca_id = b.id
-           GROUP BY b.nombre ORDER BY ganancia_neta DESC;""",
-        ["marca", "unidades_vendidas", "ingresos_totales", "ganancia_neta"] # <-- Lista de columnas
+        "SELECT b.nombre AS marca, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id GROUP BY b.nombre ORDER BY ganancia_neta DESC;",
+        ["marca", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
     ),
     (
-        "Reporte de producto más rentable", # Cambiado de "Producto más rentable"
-        """SELECT 
-               p.descripcion AS producto, 
-               SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           GROUP BY p.descripcion ORDER BY ganancia_neta DESC LIMIT 10;""",
+        "Reporte de ganancias por modelo",
+        "SELECT m.nombre AS modelo, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id GROUP BY m.nombre ORDER BY ganancia_neta DESC;",
+        ["modelo", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
+    (
+        "Reporte de ganancias por talla",
+        "SELECT t.talla AS talla, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN talla t ON pv.id_talla = t.id GROUP BY t.talla ORDER BY ganancia_neta DESC;",
+        ["talla", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
+    (
+        "Reporte de ganancias por color",
+        "SELECT c.nombre AS color, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN color c ON pv.id_color = c.id GROUP BY c.nombre ORDER BY ganancia_neta DESC;",
+        ["color", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
+    (
+        "Reporte de ganancias por etiqueta",
+        "SELECT e.nombre AS etiqueta, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN producto_etiqueta pe ON p.id = pe.producto_id JOIN etiqueta e ON pe.etiqueta_id = e.id GROUP BY e.nombre ORDER BY ganancia_neta DESC;",
+        ["etiqueta", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
+    (
+        "Reporte de ganancias por material",
+        "SELECT ma.nombre AS material, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_totales, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN material ma ON p.material_id = ma.id GROUP BY ma.nombre ORDER BY ganancia_neta DESC;",
+        ["material", "unidades_vendidas", "ingresos_totales", "ganancia_neta"]
+    ),
+    (
+        "Reporte de producto mas rentable",
+        "SELECT p.descripcion AS producto, SUM(dv.subtotal - (pv.costo * dv.cantidad)) AS ganancia_neta FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id GROUP BY p.descripcion ORDER BY ganancia_neta DESC LIMIT 10;",
         ["producto", "ganancia_neta"]
     ),
-
-    # --- VENTAS (REVENUE) - (Valor Único) ---
     (
         "Total vendido",
         "SELECT SUM(monto_total) AS ventas_totales FROM venta;"
@@ -76,124 +92,68 @@ TEMPLATES = [
         "Ventas del vendedor {vendedor_username}",
         "SELECT SUM(v.monto_total) FROM venta v JOIN usuario u ON v.vendedor_id = u.id WHERE u.username = '{vendedor_username}';"
     ),
-
-    # --- ¡CAMBIO! Plantillas de TABLAS (formato de 3 elementos) ---
     (
-        "Reporte de ventas por categoría",
-        """WITH RECURSIVE categorias_recursivas(id) AS (
-             SELECT id FROM categoria WHERE nombre = '{categoria}'
-             UNION
-             SELECT c.id FROM categoria c
-             JOIN categorias_recursivas cr ON c.padre_id = cr.id
-           )
-           SELECT 
-               p.descripcion AS producto,
-               m.nombre AS modelo,
-               b.nombre AS marca,
-               SUM(dv.cantidad) AS unidades,
-               SUM(dv.subtotal) AS ingresos
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           JOIN modelo m ON p.modelo_id = m.id
-           JOIN marca b ON m.marca_id = b.id
-           WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas)
-           GROUP BY p.descripcion, m.nombre, b.nombre ORDER BY ingresos DESC;""",
+        "Reporte de ventas por categoria",
+        "WITH RECURSIVE categorias_recursivas(id) AS ( SELECT id FROM categoria WHERE nombre = '{categoria}' UNION SELECT c.id FROM categoria c JOIN categorias_recursivas cr ON c.padre_id = cr.id ) SELECT p.descripcion AS producto, m.nombre AS modelo, b.nombre AS marca, SUM(dv.cantidad) AS unidades, SUM(dv.subtotal) AS ingresos FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas) GROUP BY p.descripcion, m.nombre, b.nombre ORDER BY ingresos DESC;",
         ["producto", "modelo", "marca", "unidades", "ingresos"]
     ),
     (
         "Reporte de ventas por marca",
-        """SELECT 
-               b.nombre AS marca, 
-               p.descripcion AS producto,
-               SUM(dv.cantidad) AS unidades, 
-               SUM(dv.subtotal) AS ingresos
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           JOIN modelo m ON p.modelo_id = m.id
-           JOIN marca b ON m.marca_id = b.id
-           GROUP BY b.nombre, p.descripcion ORDER BY b.nombre, ingresos DESC;""",
+        "SELECT b.nombre AS marca, p.descripcion AS producto, SUM(dv.cantidad) AS unidades, SUM(dv.subtotal) AS ingresos FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id GROUP BY b.nombre, p.descripcion ORDER BY b.nombre, ingresos DESC;",
         ["marca", "producto", "unidades", "ingresos"]
     ),
-
-    # --- PRODUCTOS MÁS VENDIDOS (TABLAS) ---
     (
-        "Reporte de productos más vendidos", # Cambiado de "Top 5..."
-        """SELECT 
-               p.descripcion AS producto, 
-               SUM(dv.cantidad) AS total_vendido,
-               SUM(dv.subtotal) AS ingresos_totales
-           FROM detalle_venta dv
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-           JOIN producto p ON pv.id_producto = p.id
-           GROUP BY p.descripcion ORDER BY total_vendido DESC LIMIT 10;""",
+        "Reporte de productos mas vendidos",
+        "SELECT p.descripcion AS producto, SUM(dv.cantidad) AS total_vendido, SUM(dv.subtotal) AS ingresos_totales FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id GROUP BY p.descripcion ORDER BY total_vendido DESC LIMIT 10;",
         ["producto", "total_vendido", "ingresos_totales"]
     ),
-
-    # --- INVENTARIO Y STOCK (TABLAS) ---
     (
-        "Reporte de inventario del producto {producto}", # Cambiado de "Inventario..."
-        """SELECT 
-               t.talla, 
-               c.nombre AS color, 
-               pv.sku,
-               pv.stock
-           FROM prod_variante pv
-           JOIN producto p ON pv.id_producto = p.id
-           JOIN talla t ON pv.id_talla = t.id
-           JOIN color c ON pv.id_color = c.id
-           WHERE p.descripcion = '{producto}' ORDER BY t.talla, c.nombre;""",
+        "Reporte de inventario del producto {producto}",
+        "SELECT t.talla, c.nombre AS color, pv.sku, pv.stock FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id JOIN talla t ON pv.id_talla = t.id JOIN color c ON pv.id_color = c.id WHERE p.descripcion = '{producto}' ORDER BY t.talla, c.nombre;",
         ["talla", "color", "sku", "stock"]
     ),
     (
-        "Reporte de productos con bajo stock", # Cambiado de "Productos con bajo stock..."
-        """SELECT 
-               p.descripcion AS producto, 
-               pv.sku, 
-               pv.stock,
-               t.talla,
-               c.nombre AS color
-           FROM prod_variante pv
-           JOIN producto p ON pv.id_producto = p.id
-           JOIN talla t ON pv.id_talla = t.id
-           JOIN color c ON pv.id_color = c.id
-           WHERE pv.stock < 10 ORDER BY pv.stock ASC;""",
+        "Reporte de productos con bajo stock",
+        "SELECT p.descripcion AS producto, pv.sku, pv.stock, t.talla, c.nombre AS color FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id JOIN talla t ON pv.id_talla = t.id JOIN color c ON pv.id_color = c.id WHERE pv.stock < 10 ORDER BY pv.stock ASC;",
         ["producto", "sku", "stock", "talla", "color"]
     ),
-
-    # --- CONTEOS Y LISTAS (TABLAS) ---
     (
-        "Lista de productos de la etiqueta {etiqueta}", # Cambiado de "Lista de productos {etiqueta}"
-        """SELECT 
-               p.descripcion AS producto, 
-               pv.sku,
-               b.nombre AS marca
-           FROM producto p
-           JOIN producto_etiqueta pe ON p.id = pe.producto_id
-           JOIN etiqueta e ON pe.etiqueta_id = e.id
-           JOIN prod_variante pv ON p.id = pv.id_producto
-           JOIN modelo m ON p.modelo_id = m.id
-           JOIN marca b ON m.marca_id = b.id
-           WHERE e.nombre = '{etiqueta}';""",
-        ["producto", "sku", "marca"]
+        "Lista de productos de la categoria {categoria}",
+        "WITH RECURSIVE categorias_recursivas(id) AS ( SELECT id FROM categoria WHERE nombre = '{categoria}' UNION SELECT c.id FROM categoria c JOIN categorias_recursivas cr ON c.padre_id = cr.id ) SELECT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo, ma.nombre AS material FROM producto p LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id LEFT JOIN material ma ON p.material_id = ma.id WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);",
+        ["producto", "marca", "modelo", "material"]
     ),
     (
         "Lista de productos de la marca {marca}",
-        """SELECT 
-               p.descripcion AS producto, 
-               m.nombre AS modelo,
-               ma.nombre AS material
-           FROM producto p
-           JOIN modelo m ON p.modelo_id = m.id
-           JOIN marca b ON m.marca_id = b.id
-           JOIN material ma ON p.material_id = ma.id
-           WHERE b.nombre = '{marca}';""",
+        "SELECT p.descripcion AS producto, m.nombre AS modelo, ma.nombre AS material FROM producto p JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id JOIN material ma ON p.material_id = ma.id WHERE b.nombre = '{marca}';",
         ["producto", "modelo", "material"]
     ),
-    # --- REPORTES DE VENTAS (VALOR ÚNICO) ---
     (
-        "Ventas de los últimos 30 días",
+        "Lista de productos del modelo {modelo}",
+        "SELECT p.descripcion AS producto, b.nombre AS marca, ma.nombre AS material, c.nombre AS categoria FROM producto p JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id JOIN material ma ON p.material_id = ma.id JOIN categoria c ON p.categoria_id = c.id WHERE m.nombre = '{modelo}';",
+        ["producto", "marca", "material", "categoria"]
+    ),
+    (
+        "Lista de productos del material {material}",
+        "SELECT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo, c.nombre AS categoria FROM producto p JOIN material ma ON p.material_id = ma.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id JOIN categoria c ON p.categoria_id = c.id WHERE ma.nombre = '{material}';",
+        ["producto", "marca", "modelo", "categoria"]
+    ),
+    (
+        "Lista de productos en talla {talla}",
+        "SELECT DISTINCT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo FROM producto p JOIN prod_variante pv ON p.id = pv.id_producto JOIN talla t ON pv.id_talla = t.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id WHERE t.talla = '{talla}';",
+        ["producto", "marca", "modelo"]
+    ),
+    (
+        "Lista de productos en color {color}",
+        "SELECT DISTINCT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo FROM producto p JOIN prod_variante pv ON p.id = pv.id_producto JOIN color c ON pv.id_color = c.id JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id WHERE c.nombre = '{color}';",
+        ["producto", "marca", "modelo"]
+    ),
+    (
+        "Lista de productos de la etiqueta {etiqueta}",
+        "SELECT p.descripcion AS producto, pv.sku, b.nombre AS marca FROM producto p JOIN producto_etiqueta pe ON p.id = pe.producto_id JOIN etiqueta e ON pe.etiqueta_id = e.id JOIN prod_variante pv ON p.id = pv.id_producto JOIN modelo m ON p.modelo_id = m.id JOIN marca b ON m.marca_id = b.id WHERE e.nombre = '{etiqueta}';",
+        ["producto", "sku", "marca"]
+    ),
+    (
+        "Ventas de los ultimos 30 dias",
         "SELECT SUM(monto_total) AS ventas_30_dias FROM venta WHERE DATE(fecha_venta) >= DATE('now', '-30 days');"
     ),
     (
@@ -213,132 +173,59 @@ TEMPLATES = [
         "SELECT SUM(v.monto_total) FROM venta v JOIN usuario u ON v.vendedor_id = u.id WHERE u.username = '{vendedor_username}' AND STRFTIME('%Y-%m', v.fecha_venta) = STRFTIME('%Y-%m', 'now');"
     ),
     (
-        "Número de ventas de hoy",
+        "Numero de ventas de hoy",
         "SELECT COUNT(id) AS num_ventas_hoy FROM venta WHERE DATE(fecha_venta) = DATE('now');"
     ),
     (
-        "Cuántas ventas hizo {vendedor_username}",
+        "Cuantas ventas hizo {vendedor_username}",
         "SELECT COUNT(v.id) FROM venta v JOIN usuario u ON v.vendedor_id = u.id WHERE u.username = '{vendedor_username}';"
     ),
-
-    # --- REPORTES DE VENTAS (TABLAS) ---
     (
-        "Reporte de ventas por día de la semana",
-        """SELECT 
-               CASE STRFTIME('%w', fecha_venta)
-                   WHEN '0' THEN 'Domingo'
-                   WHEN '1' THEN 'Lunes'
-                   WHEN '2' THEN 'Martes'
-                   WHEN '3' THEN 'Miércoles'
-                   WHEN '4' THEN 'Jueves'
-                   WHEN '5' THEN 'Viernes'
-                   ELSE 'Sábado'
-               END AS dia_semana,
-               COUNT(id) AS numero_ventas,
-               SUM(monto_total) AS total_ventas
-           FROM venta
-           GROUP BY dia_semana
-           ORDER BY STRFTIME('%w', fecha_venta);""",
+        "Reporte de ventas por dia de la semana",
+        "SELECT CASE STRFTIME('%w', fecha_venta) WHEN '0' THEN 'Domingo' WHEN '1' THEN 'Lunes' WHEN '2' THEN 'Martes' WHEN '3' THEN 'Miercoles' WHEN '4' THEN 'Jueves' WHEN '5' THEN 'Viernes' ELSE 'Sabado' END AS dia_semana, COUNT(id) AS numero_ventas, SUM(monto_total) AS total_ventas FROM venta GROUP BY dia_semana ORDER BY STRFTIME('%w', fecha_venta);",
         ["dia_semana", "numero_ventas", "total_ventas"]
     ),
     (
         "Reporte de ventas mensuales",
-        """SELECT 
-               STRFTIME('%Y-%m', fecha_venta) AS mes,
-               COUNT(id) AS numero_ventas,
-               SUM(monto_total) AS total_ventas,
-               AVG(monto_total) AS ticket_promedio
-           FROM venta
-           GROUP BY mes
-           ORDER BY mes DESC;""",
+        "SELECT STRFTIME('%Y-%m', fecha_venta) AS mes, COUNT(id) AS numero_ventas, SUM(monto_total) AS total_ventas, AVG(monto_total) AS ticket_promedio FROM venta GROUP BY mes ORDER BY mes DESC;",
         ["mes", "numero_ventas", "total_ventas", "ticket_promedio"]
     ),
     (
         "Reporte de ventas por vendedor",
-        """SELECT 
-               u.username,
-               u.nombre,
-               u.apellido,
-               COUNT(v.id) AS numero_ventas,
-               SUM(v.monto_total) AS total_vendido,
-               AVG(v.monto_total) AS venta_promedio
-           FROM venta v
-           JOIN usuario u ON v.vendedor_id = u.id
-           GROUP BY u.id, u.username, u.nombre, u.apellido
-           ORDER BY total_vendido DESC;""",
+        "SELECT u.username, u.nombre, u.apellido, COUNT(v.id) AS numero_ventas, SUM(v.monto_total) AS total_vendido, AVG(v.monto_total) AS venta_promedio FROM venta v JOIN usuario u ON v.vendedor_id = u.id GROUP BY u.id, u.username, u.nombre, u.apellido ORDER BY total_vendido DESC;",
         ["username", "nombre", "apellido", "numero_ventas", "total_vendido", "venta_promedio"]
     ),
     (
         "Reporte de clientes por gasto",
-        """SELECT 
-               u.email,
-               u.nombre,
-               u.apellido,
-               COUNT(v.id) AS total_compras,
-               SUM(v.monto_total) AS gasto_total
-           FROM venta v
-           JOIN usuario u ON v.cliente_id = u.id
-           GROUP BY u.id, u.email, u.nombre, u.apellido
-           ORDER BY gasto_total DESC;""",
+        "SELECT u.email, u.nombre, u.apellido, COUNT(v.id) AS total_compras, SUM(v.monto_total) AS gasto_total FROM venta v JOIN usuario u ON v.cliente_id = u.id GROUP BY u.id, u.email, u.nombre, u.apellido ORDER BY gasto_total DESC;",
         ["email", "nombre", "apellido", "total_compras", "gasto_total"]
     ),
     (
-        "Reporte por método de pago",
-        """SELECT 
-               metodo_pago,
-               COUNT(id) AS numero_ventas,
-               SUM(monto_total) AS total_recaudado,
-               AVG(monto_total) AS ticket_promedio
-           FROM venta
-           GROUP BY metodo_pago;""",
+        "Reporte por metodo de pago",
+        "SELECT metodo_pago, COUNT(id) AS numero_ventas, SUM(monto_total) AS total_recaudado, AVG(monto_total) AS ticket_promedio FROM venta GROUP BY metodo_pago;",
         ["metodo_pago", "numero_ventas", "total_recaudado", "ticket_promedio"]
     ),
     (
         "Reporte por estado de pedido",
-        """SELECT 
-               estado_pedido,
-               COUNT(id) AS numero_ventas,
-               SUM(monto_total) AS total_recaudado
-           FROM venta
-           GROUP BY estado_pedido;""",
+        "SELECT estado_pedido, COUNT(id) AS numero_ventas, SUM(monto_total) AS total_recaudado FROM venta GROUP BY estado_pedido;",
         ["estado_pedido", "numero_ventas", "total_recaudado"]
     ),
     (
-        "Reporte de las últimas 20 ventas",
-        """SELECT
-               v.fecha_venta,
-               v.numero_venta,
-               u_cliente.email AS cliente,
-               u_vendedor.username AS vendedor,
-               v.monto_total,
-               v.estado_pedido
-           FROM venta v
-           JOIN usuario u_cliente ON v.cliente_id = u_cliente.id
-           JOIN usuario u_vendedor ON v.vendedor_id = u_vendedor.id
-           ORDER BY v.fecha_venta DESC
-           LIMIT 20;""",
+        "Reporte de las ultimas 20 ventas",
+        "SELECT v.fecha_venta, v.numero_venta, u_cliente.email AS cliente, u_vendedor.username AS vendedor, v.monto_total, v.estado_pedido FROM venta v JOIN usuario u_cliente ON v.cliente_id = u_cliente.id JOIN usuario u_vendedor ON v.vendedor_id = u_vendedor.id ORDER BY v.fecha_venta DESC LIMIT 20;",
         ["fecha_venta", "numero_venta", "cliente", "vendedor", "monto_total", "estado_pedido"]
     ),
     (
         "Historial de compras del cliente {cliente_username}",
-        """SELECT 
-               v.fecha_venta, 
-               v.numero_venta, 
-               v.monto_total, 
-               v.estado_pedido 
-           FROM venta v 
-           JOIN usuario u ON v.cliente_id = u.id 
-           WHERE u.email = '{cliente_username}' 
-           ORDER BY v.fecha_venta DESC;""",
+        "SELECT v.fecha_venta, v.numero_venta, v.monto_total, v.estado_pedido FROM venta v JOIN usuario u ON v.cliente_id = u.id WHERE u.email = '{cliente_username}' ORDER BY v.fecha_venta DESC;",
         ["fecha_venta", "numero_venta", "monto_total", "estado_pedido"]
     ),
-    # --- REPORTES DE PRODUCTOS (VALOR ÚNICO / KPIs) ---
     (
-        "¿Cuántos productos base tenemos?",
+        "Cuantos productos base tenemos",
         "SELECT COUNT(id) AS total_productos FROM producto;"
     ),
     (
-        "¿Cuántos SKUs (variantes) tenemos en total?",
+        "Cuantos SKUs (variantes) tenemos en total",
         "SELECT COUNT(id) AS total_skus FROM prod_variante;"
     ),
     (
@@ -354,206 +241,75 @@ TEMPLATES = [
         "SELECT SUM((pv.precio - pv.costo) * pv.stock) AS ganancia_potencial FROM prod_variante pv;"
     ),
     (
-        "Stock total de la categoría {categoria}",
-        """WITH RECURSIVE categorias_recursivas(id) AS (
-             SELECT id FROM categoria WHERE nombre = '{categoria}'
-             UNION
-             SELECT c.id FROM categoria c
-             JOIN categorias_recursivas cr ON c.padre_id = cr.id
-           )
-           SELECT SUM(pv.stock) AS stock_total
-           FROM prod_variante pv
-           JOIN producto p ON pv.id_producto = p.id
-           WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);"""
+        "Stock total de la categoria {categoria}",
+        "WITH RECURSIVE categorias_recursivas(id) AS ( SELECT id FROM categoria WHERE nombre = '{categoria}' UNION SELECT c.id FROM categoria c JOIN categorias_recursivas cr ON c.padre_id = cr.id ) SELECT SUM(pv.stock) AS stock_total FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);"
     ),
     (
         "Stock total del producto {producto}",
         "SELECT SUM(pv.stock) AS stock_total FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id WHERE p.descripcion = '{producto}';"
     ),
     (
-        "Cuántos productos en talla {talla} tenemos en stock",
+        "Cuantos productos en talla {talla} tenemos en stock",
         "SELECT SUM(pv.stock) FROM prod_variante pv JOIN talla t ON pv.id_talla = t.id WHERE t.talla = '{talla}';"
     ),
     (
         "Stock de productos de color {color}",
         "SELECT SUM(pv.stock) FROM prod_variante pv JOIN color c ON pv.id_color = c.id WHERE c.nombre = '{color}';"
     ),
-
-    # --- REPORTES DE PRODUCTOS (TABLAS) ---
     (
         "Reporte de inventario completo",
-        """SELECT
-               p.descripcion AS producto,
-               cat.nombre AS categoria,
-               b.nombre AS marca,
-               m.nombre AS modelo,
-               ma.nombre AS material,
-               pv.sku,
-               t.talla,
-               co.nombre AS color,
-               pv.stock
-           FROM prod_variante pv
-           LEFT JOIN producto p ON pv.id_producto = p.id
-           LEFT JOIN categoria cat ON p.categoria_id = cat.id
-           LEFT JOIN modelo m ON p.modelo_id = m.id
-           LEFT JOIN marca b ON m.marca_id = b.id
-           LEFT JOIN material ma ON p.material_id = ma.id
-           LEFT JOIN talla t ON pv.id_talla = t.id
-           LEFT JOIN color co ON pv.id_color = co.id
-           ORDER BY p.descripcion, pv.stock;""",
+        "SELECT p.descripcion AS producto, cat.nombre AS categoria, b.nombre AS marca, m.nombre AS modelo, ma.nombre AS material, pv.sku, t.talla, co.nombre AS color, pv.stock FROM prod_variante pv LEFT JOIN producto p ON pv.id_producto = p.id LEFT JOIN categoria cat ON p.categoria_id = cat.id LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id LEFT JOIN material ma ON p.material_id = ma.id LEFT JOIN talla t ON pv.id_talla = t.id LEFT JOIN color co ON pv.id_color = co.id ORDER BY p.descripcion, pv.stock;",
         ["producto", "categoria", "marca", "modelo", "material", "sku", "talla", "color", "stock"]
     ),
     (
         "Reporte de clientes que compraron {producto}",
-        """SELECT 
-            u.nombre, 
-            u.apellido, 
-            u.email, 
-            SUM(dv.cantidad) AS unidades_compradas,
-            SUM(dv.subtotal) AS gasto_en_producto
-        FROM detalle_venta dv
-        JOIN venta v ON dv.venta_id = v.id
-        JOIN usuario u ON v.cliente_id = u.id
-        JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-        JOIN producto p ON pv.id_producto = p.id
-        WHERE p.descripcion = '{producto}'
-        GROUP BY u.id, u.nombre, u.apellido, u.email
-        ORDER BY gasto_en_producto DESC;""",
+        "SELECT u.nombre, u.apellido, u.email, SUM(dv.cantidad) AS unidades_compradas, SUM(dv.subtotal) AS gasto_en_producto FROM detalle_venta dv JOIN venta v ON dv.venta_id = v.id JOIN usuario u ON v.cliente_id = u.id JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id WHERE p.descripcion = '{producto}' GROUP BY u.id, u.nombre, u.apellido, u.email ORDER BY gasto_en_producto DESC;",
         ["nombre", "apellido", "email", "unidades_compradas", "gasto_en_producto"]
     ),
     (
         "Precio promedio de venta del producto {producto}",
-        """SELECT AVG(pv.precio) AS precio_promedio
-        FROM prod_variante pv
-        JOIN producto p ON pv.id_producto = p.id
-        WHERE p.descripcion = '{producto}';"""
+        "SELECT AVG(pv.precio) AS precio_promedio FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id WHERE p.descripcion = '{producto}';"
     ),
     (
         "Reporte de ingresos por material",
-        """SELECT 
-            ma.nombre AS material,
-            SUM(dv.cantidad) AS unidades_vendidas,
-            SUM(dv.subtotal) AS ingresos_por_material
-        FROM detalle_venta dv
-        JOIN prod_variante pv ON dv.prod_variante_id = pv.id
-        JOIN producto p ON pv.id_producto = p.id
-        JOIN material ma ON p.material_id = ma.id
-        GROUP BY ma.nombre
-        ORDER BY ingresos_por_material DESC;""",
+        "SELECT ma.nombre AS material, SUM(dv.cantidad) AS unidades_vendidas, SUM(dv.subtotal) AS ingresos_por_material FROM detalle_venta dv JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id JOIN material ma ON p.material_id = ma.id GROUP BY ma.nombre ORDER BY ingresos_por_material DESC;",
         ["material", "unidades_vendidas", "ingresos_por_material"]
     ),
     (
         "Reporte de bajo stock (menos de 10 unidades)",
-        """SELECT
-               p.descripcion AS producto,
-               pv.sku,
-               t.talla,
-               co.nombre AS color,
-               pv.stock
-           FROM prod_variante pv
-           LEFT JOIN producto p ON pv.id_producto = p.id
-           LEFT JOIN talla t ON pv.id_talla = t.id
-           LEFT JOIN color co ON pv.id_color = co.id
-           WHERE pv.stock < 10
-           ORDER BY pv.stock ASC;""",
+        "SELECT p.descripcion AS producto, pv.sku, t.talla, co.nombre AS color, pv.stock FROM prod_variante pv LEFT JOIN producto p ON pv.id_producto = p.id LEFT JOIN talla t ON pv.id_talla = t.id LEFT JOIN color co ON pv.id_color = co.id WHERE pv.stock < 10 ORDER BY pv.stock ASC;",
         ["producto", "sku", "talla", "color", "stock"]
     ),
     (
         "Reporte de valor de inventario",
-        """SELECT
-               p.descripcion AS producto,
-               pv.sku,
-               pv.stock,
-               pv.costo,
-               pv.precio,
-               (pv.stock * pv.costo) AS costo_total,
-               (pv.stock * pv.precio) AS valor_total
-           FROM prod_variante pv
-           JOIN producto p ON pv.id_producto = p.id
-           ORDER BY costo_total DESC;""",
+        "SELECT p.descripcion AS producto, pv.sku, pv.stock, pv.costo, pv.precio, (pv.stock * pv.costo) AS costo_total, (pv.stock * pv.precio) AS valor_total FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id ORDER BY costo_total DESC;",
         ["producto", "sku", "stock", "costo", "precio", "costo_total", "valor_total"]
     ),
     (
-        "Lista de productos de la categoría {categoria}",
-        """WITH RECURSIVE categorias_recursivas(id) AS (
-             SELECT id FROM categoria WHERE nombre = '{categoria}'
-             UNION
-             SELECT c.id FROM categoria c
-             JOIN categorias_recursivas cr ON c.padre_id = cr.id
-           )
-           SELECT
-               p.descripcion AS producto,
-               b.nombre AS marca,
-               m.nombre AS modelo,
-               ma.nombre AS material
-           FROM producto p
-           LEFT JOIN modelo m ON p.modelo_id = m.id
-           LEFT JOIN marca b ON m.marca_id = b.id
-           LEFT JOIN material ma ON p.material_id = ma.id
-           WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);""",
+        "Lista de productos de la categoria {categoria}",
+        "WITH RECURSIVE categorias_recursivas(id) AS ( SELECT id FROM categoria WHERE nombre = '{categoria}' UNION SELECT c.id FROM categoria c JOIN categorias_recursivas cr ON c.padre_id = cr.id ) SELECT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo, ma.nombre AS material FROM producto p LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id LEFT JOIN material ma ON p.material_id = ma.id WHERE p.categoria_id IN (SELECT id FROM categorias_recursivas);",
         ["producto", "marca", "modelo", "material"]
     ),
     (
         "Lista de productos de la marca {marca}",
-        """SELECT
-               p.descripcion AS producto,
-               m.nombre AS modelo,
-               ma.nombre AS material,
-               c.nombre AS categoria
-           FROM producto p
-           LEFT JOIN modelo m ON p.modelo_id = m.id
-           LEFT JOIN marca b ON m.marca_id = b.id
-           LEFT JOIN material ma ON p.material_id = ma.id
-           LEFT JOIN categoria c ON p.categoria_id = c.id
-           WHERE b.nombre = '{marca}';""",
+        "SELECT p.descripcion AS producto, m.nombre AS modelo, ma.nombre AS material, c.nombre AS categoria FROM producto p LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id LEFT JOIN material ma ON p.material_id = ma.id LEFT JOIN categoria c ON p.categoria_id = c.id WHERE b.nombre = '{marca}';",
         ["producto", "modelo", "material", "categoria"]
     ),
     (
         "Lista de productos con la etiqueta {etiqueta}",
-        """SELECT
-               p.descripcion AS producto,
-               b.nombre AS marca,
-               m.nombre AS modelo,
-               c.nombre AS categoria
-           FROM producto p
-           JOIN producto_etiqueta pe ON p.id = pe.producto_id
-           JOIN etiqueta e ON pe.etiqueta_id = e.id
-           LEFT JOIN modelo m ON p.modelo_id = m.id
-           LEFT JOIN marca b ON m.marca_id = b.id
-           LEFT JOIN categoria c ON p.categoria_id = c.id
-           WHERE e.nombre = '{etiqueta}';""",
+        "SELECT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo, c.nombre AS categoria FROM producto p JOIN producto_etiqueta pe ON p.id = pe.producto_id JOIN etiqueta e ON pe.etiqueta_id = e.id LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id LEFT JOIN categoria c ON p.categoria_id = c.id WHERE e.nombre = '{etiqueta}';",
         ["producto", "marca", "modelo", "categoria"]
     ),
     (
         "Lista de productos de {material}",
-        """SELECT
-               p.descripcion AS producto,
-               b.nombre AS marca,
-               m.nombre AS modelo
-           FROM producto p
-           JOIN material ma ON p.material_id = ma.id
-           LEFT JOIN modelo m ON p.modelo_id = m.id
-           LEFT JOIN marca b ON m.marca_id = b.id
-           WHERE ma.nombre = '{material}';""",
+        "SELECT p.descripcion AS producto, b.nombre AS marca, m.nombre AS modelo FROM producto p JOIN material ma ON p.material_id = ma.id LEFT JOIN modelo m ON p.modelo_id = m.id LEFT JOIN marca b ON m.marca_id = b.id WHERE ma.nombre = '{material}';",
         ["producto", "marca", "modelo"]
     ),
     (
         "Reporte de inventario del producto {producto}",
-        """SELECT 
-               t.talla, 
-               c.nombre AS color, 
-               pv.sku,
-               pv.stock,
-               pv.costo,
-               pv.precio
-           FROM prod_variante pv
-           JOIN producto p ON pv.id_producto = p.id
-           LEFT JOIN talla t ON pv.id_talla = t.id
-           LEFT JOIN color c ON pv.id_color = c.id
-           WHERE p.descripcion = '{producto}' ORDER BY t.talla, c.nombre;""",
+        "SELECT t.talla, c.nombre AS color, pv.sku, pv.stock, pv.costo, pv.precio FROM prod_variante pv JOIN producto p ON pv.id_producto = p.id LEFT JOIN talla t ON pv.id_talla = t.id LEFT JOIN color c ON pv.id_color = c.id WHERE p.descripcion = '{producto}' ORDER BY t.talla, c.nombre;",
         ["talla", "color", "sku", "stock", "costo", "precio"]
     ),
-    # --- (NUEVO) REPORTES DE CLIENTES (VALOR ÚNICO) ---
     (
         "Total de clientes registrados",
         "SELECT COUNT(u.id) FROM usuario u JOIN rol r ON u.rol_id = r.id WHERE r.nombre = 'CLIENTE';"
@@ -563,97 +319,41 @@ TEMPLATES = [
         "SELECT SUM(v.monto_total) FROM venta v JOIN usuario u ON v.cliente_id = u.id WHERE u.email = '{cliente_username}';"
     ),
     (
-        "Cuántas compras hizo {cliente_username}",
+        "Cuantas compras hizo {cliente_username}",
         "SELECT COUNT(v.id) FROM venta v JOIN usuario u ON v.cliente_id = u.id WHERE u.email = '{cliente_username}';"
     ),
     (
         "Gasto promedio por cliente",
         "SELECT AVG(total_gasto) FROM (SELECT SUM(monto_total) AS total_gasto FROM venta GROUP BY cliente_id) AS gastos_cliente;"
     ),
-
-    # --- (NUEVO) REPORTES DE CLIENTES (TABLAS) ---
     (
         "Reporte de clientes por gasto",
-        """SELECT 
-               u.nombre, 
-               u.apellido, 
-               u.email, 
-               u.telefono, 
-               COUNT(v.id) AS total_compras, 
-               SUM(v.monto_total) AS gasto_total 
-           FROM venta v 
-           JOIN usuario u ON v.cliente_id = u.id 
-           JOIN rol r ON u.rol_id = r.id 
-           WHERE r.nombre = 'CLIENTE' 
-           GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono 
-           ORDER BY gasto_total DESC;""",
+        "SELECT u.nombre, u.apellido, u.email, u.telefono, COUNT(v.id) AS total_compras, SUM(v.monto_total) AS gasto_total FROM venta v JOIN usuario u ON v.cliente_id = u.id JOIN rol r ON u.rol_id = r.id WHERE r.nombre = 'CLIENTE' GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono ORDER BY gasto_total DESC;",
         ["nombre", "apellido", "email", "telefono", "total_compras", "gasto_total"]
     ),
     (
-        "Reporte de clientes por número de compras",
-        """SELECT 
-               u.nombre, 
-               u.apellido, 
-               u.email, 
-               u.telefono, 
-               COUNT(v.id) AS total_compras, 
-               SUM(v.monto_total) AS gasto_total 
-           FROM venta v 
-           JOIN usuario u ON v.cliente_id = u.id 
-           JOIN rol r ON u.rol_id = r.id 
-           WHERE r.nombre = 'CLIENTE' 
-           GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono 
-           ORDER BY total_compras DESC;""",
+        "Reporte de clientes por numero de compras",
+        "SELECT u.nombre, u.apellido, u.email, u.telefono, COUNT(v.id) AS total_compras, SUM(v.monto_total) AS gasto_total FROM venta v JOIN usuario u ON v.cliente_id = u.id JOIN rol r ON u.rol_id = r.id WHERE r.nombre = 'CLIENTE' GROUP BY u.id, u.nombre, u.apellido, u.email, u.telefono ORDER BY total_compras DESC;",
         ["nombre", "apellido", "email", "telefono", "total_compras", "gasto_total"]
     ),
     (
         "Lista de clientes y sus direcciones",
-        """SELECT 
-               u.nombre, 
-               u.apellido, 
-               u.email, 
-               d.departamento, 
-               d.zona, 
-               d.calle 
-           FROM usuario u 
-           LEFT JOIN direccion d ON u.id = d.usuario_id 
-           JOIN rol r ON u.rol_id = r.id 
-           WHERE r.nombre = 'CLIENTE' 
-           ORDER BY u.apellido;""",
+        "SELECT u.nombre, u.apellido, u.email, d.departamento, d.zona, d.calle FROM usuario u LEFT JOIN direccion d ON u.id = d.usuario_id JOIN rol r ON u.rol_id = r.id WHERE r.nombre = 'CLIENTE' ORDER BY u.apellido;",
         ["nombre", "apellido", "email", "departamento", "zona", "calle"]
     ),
     (
         "Reporte de productos comprados por {cliente_username}",
-        """SELECT 
-               p.descripcion AS producto, 
-               pv.sku, 
-               SUM(dv.cantidad) AS unidades_compradas 
-           FROM detalle_venta dv 
-           JOIN venta v ON dv.venta_id = v.id 
-           JOIN usuario u ON v.cliente_id = u.id 
-           JOIN prod_variante pv ON dv.prod_variante_id = pv.id 
-           JOIN producto p ON pv.id_producto = p.id 
-           WHERE u.email = '{cliente_username}' 
-           GROUP BY p.descripcion, pv.sku 
-           ORDER BY unidades_compradas DESC;""",
+        "SELECT p.descripcion AS producto, pv.sku, SUM(dv.cantidad) AS unidades_compradas FROM detalle_venta dv JOIN venta v ON dv.venta_id = v.id JOIN usuario u ON v.cliente_id = u.id JOIN prod_variante pv ON dv.prod_variante_id = pv.id JOIN producto p ON pv.id_producto = p.id WHERE u.email = '{cliente_username}' GROUP BY p.descripcion, pv.sku ORDER BY unidades_compradas DESC;",
         ["producto", "sku", "unidades_compradas"]
     ),
     (
         "Historial de compras del cliente {cliente_username}",
-        """SELECT 
-               v.fecha_venta, 
-               v.numero_venta, 
-               v.monto_total, 
-               v.estado_pedido 
-           FROM venta v 
-           JOIN usuario u ON v.cliente_id = u.id 
-           WHERE u.email = '{cliente_username}' 
-           ORDER BY v.fecha_venta DESC;""",
+        "SELECT v.fecha_venta, v.numero_venta, v.monto_total, v.estado_pedido FROM venta v JOIN usuario u ON v.cliente_id = u.id WHERE u.email = '{cliente_username}' ORDER BY v.fecha_venta DESC;",
         ["fecha_venta", "numero_venta", "monto_total", "estado_pedido"]
     )
 ]
 
-# --- 2. Función para cargar los datos de tus CSVs (¡CAMBIO!) ---
+# --- 2. Funcion para cargar los datos de tus CSVs (¡CAMBIO!) ---
 def cargar_parametros():
     """Carga los datos de los CSVs en listas para usarlos en las plantillas."""
     try:
@@ -694,20 +394,20 @@ def cargar_parametros():
         return parametros
         
     except FileNotFoundError as e:
-        print(f"Error: No se encontró el archivo {e.filename}.")
-        print("Asegúrate de haber creado la carpeta 'data_csvs' y copiado todos los .csv allí.")
+        print(f"Error: No se encontro el archivo {e.filename}.")
+        print("Asegurate de haber creado la carpeta 'data_csvs' y copiado todos los .csv alli.")
         return None
     except Exception as e:
         print(f"Error cargando CSVs: {e}")
         return None
 
-# --- 3. Script de Generación (¡CAMBIO COMPLETO!) ---
+# --- 3. Script de Generacion (¡CAMBIO COMPLETO!) ---
 
 def generar_dataset(params, num_samples=2000, nombre_archivo="train.jsonl"):
     """
     Genera un dataset de num_samples ejemplos.
     - El prompt incluye formato.
-    - El prompt A VECES incluye selección de columnas.
+    - El prompt A VECES incluye seleccion de columnas.
     - La salida es un string JSON {"sql", "formato", "columnas"}.
     """
     
@@ -732,12 +432,12 @@ def generar_dataset(params, num_samples=2000, nombre_archivo="train.jsonl"):
             texto_base = plantilla[0]
             sql_final = plantilla[1]
             
-            # Columnas por defecto (lista vacía)
+            # Columnas por defecto (lista vacia)
             columnas_elegidas = []
             
-            # --- 2. Lógica de Selección de Columnas (¡NUEVO!) ---
+            # --- 2. Logica de Seleccion de Columnas (¡NUEVO!) ---
             # Si la plantilla tiene 3 elementos (es una plantilla de tabla)
-            # y decidimos aleatoriamente (50% de las veces) pedir columnas específicas
+            # y decidimos aleatoriamente (50% de las veces) pedir columnas especificas
             if len(plantilla) == 3 and random.choice([True, False]):
                 columnas_disponibles = plantilla[2]
                 
@@ -779,7 +479,7 @@ def generar_dataset(params, num_samples=2000, nombre_archivo="train.jsonl"):
             
             for ph, key in placeholders.items():
                 if ph in texto_final:
-                    # Usamos .get() para manejar claves que podrían no estar (aunque ahora deberían estar todas)
+                    # Usamos .get() para manejar claves que podrian no estar (aunque ahora deberian estar todas)
                     if not params.get(key): 
                         skip_plantilla = True
                         break
@@ -794,7 +494,7 @@ def generar_dataset(params, num_samples=2000, nombre_archivo="train.jsonl"):
             salida_dict = {
                 "sql": sql_final,
                 "formato": formato_elegido,
-                "columnas": columnas_elegidas  # Se añade la lista (vacía o llena)
+                "columnas": columnas_elegidas  # Se añade la lista (vacia o llena)
             }
             salida_json_string = json.dumps(salida_dict) 
 
@@ -803,11 +503,11 @@ def generar_dataset(params, num_samples=2000, nombre_archivo="train.jsonl"):
             f.write(json.dumps(linea_dataset, ensure_ascii=False) + '\n')
             count += 1
             
-    print(f"¡Dataset avanzado '{nombre_archivo}' generado con {num_samples} líneas!")
+    print(f"¡Dataset avanzado '{nombre_archivo}' generado con {num_samples} lineas!")
 
 
 if __name__ == "__main__":
     parametros = cargar_parametros()
     if parametros:
-        # ¡Aumentemos el número de muestras!
+        # ¡Aumentemos el numero de muestras!
         generar_dataset(parametros, num_samples=8000, nombre_archivo="train.jsonl")
