@@ -101,9 +101,9 @@ if __name__ == '__main__':
         
         # --- CAMBIOS CORREGIDOS Y REQUERIDOS POR EL ERROR ---
         eval_strategy="steps",      # MANTENER: Queremos que evalúe por pasos
+        save_steps=100,             # MANTENER: Guarda un checkpoint cada 200 pasos
         save_strategy="steps",      # ⬅️ CORRECCIÓN: DEBE COINCIDIR con eval_strategy
-        save_steps=200,             # MANTENER: Guarda un checkpoint cada 200 pasos
-        save_total_limit=1,         # ⬅️ NUEVO: SOLO MANTIENE 1 CHECKPOINT. Esto evita que el disco se llene.
+        save_steps=100,             
         # ----------------------------------------------------
         
         load_best_model_at_end=True, # ESTO AHORA FUNCIONARÁ
